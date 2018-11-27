@@ -43,6 +43,7 @@ const authenticate = async (req, res, next) => {
     return next(new AuthenticationError('Invalid password.', 401))
   }
 
+  // TODO: use `hashField`
   const { hash, ...user } = userWithHash
   res.locals.expressAPIAuth.user = user
   next()
@@ -55,7 +56,13 @@ const postLoginHook = async (req, res, next) => {
     return next()
   }
 
-  await loginHook(req, res)
+  try {
+    await loginHook(req, res)
+  } catch (e) {
+    // TODO: update docs to reflect this error should be handled
+    return next(e)
+  }
+
   next()
 }
 
