@@ -6,7 +6,7 @@ This is a JWT authentication strategy for Express APIs, intended to help secure 
 
 * sets the JWT in a cookie with secure, same-site, and HTTP-only flags
 * sets an XSRF-TOKEN cookie (no flags), making it compatible with Angular's CSRF prevention
-* expires and refreshes the JWT at 15 minute intervals
+* uses a long expiry access token, but refreshes it frequently when the user is active
 * allows any user claims to be included with the token
 
 The strategy makes use of [csurf]() and Auth0's [express-jwt]().
@@ -100,7 +100,15 @@ Similar to `postLogin`, but called after `identify` and passed both request and 
 app.get('/users', auth.identify({ secret, postIdentify: rehydrateUser }))
 ```
 
-## Error handling
+## Signing and choice of secret
+
+JWTs signed with relatively short secrets [can be brute-forced](https://auth0.com/blog/brute-forcing-hs256-is-possible-the-importance-of-using-strong-keys-to-sign-jwts/). To mitigate this risk, choose a secret the same size as the hash output. The default is currently HS512, so choose a 512-bit key. If we're talking 8 bit characters, that's a 64 byte string. Using *nix, such a string could be generated with:
+
+```sh
+LC_ALL=C tr -dc '[[:alnum:][:punct:]]' < /dev/urandom | head -c 64
+```
+
+## Errors
 
 The provided `errorHandler` looks for:
 
