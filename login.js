@@ -51,7 +51,6 @@ const authenticate = async (req, res, next) => {
 const postLoginHook = async (req, res, next) => {
   const { loginHook } = res.locals.expressAPIAuth
 
-  // TODO: ideally allow an array of middleware here
   if (!isFunction(loginHook)) {
     return next()
   }
