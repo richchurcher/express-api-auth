@@ -2,7 +2,7 @@ import jsonWebToken from 'jsonwebtoken'
 
 // TODO: allow more configuration of these, particularly alg
 const JWT_CLAIMS = {
-  algorithm: 'HS512',
+  algorithms: [ 'HS512' ],
   expiresIn: '7d'
 }
 
