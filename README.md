@@ -1,5 +1,7 @@
 # express-api-auth
 
+**THIS IS PRE-ALPHA. DEFINITELY NOT READY FOR PRODUCTION USE.**
+
 This is a JWT authentication strategy for Express APIs, intended to help secure SPAs. By default, it:
 
 * sets the JWT in a cookie with secure, same-site, and HTTP-only flags
@@ -31,11 +33,12 @@ const auth = require('express-api-auth')
 const { getUser } = require('./users')
 
 const app = express()
+const login = auth.login({ getuser, secret: process.env.JWT_SECRET })
 const identify = auth.identify({ secret: process.env.JWT_SECRET })
 
 app.use(cookieParser())
 
-app.post('/login', auth.login({ getUser })
+app.post('/login', login)
 app.get('/logout', auth.logout)
 app.post('/api/users', identify, (req, res) => {
   // ...
@@ -53,11 +56,11 @@ Here, `getUser` is a function that accepts a username argument and returns a use
 }
 ```
 
-If the promise rejects (or a `null` is returned), `login` will issue an error.
+If the promise rejects, `login` will issue an error.
 
-If it resolves successfully, two cookies will be set: one containing the JWT named `AUTH-TOKEN`, and one containing a CSRF token named `XSRF-TOKEN`. A 201 HTTP status response will be issued. The JWT will contain a `sub` (subject) claim consisting of the user id, available on the request object as `req.user.sub`.
+If it resolves (and the hash is verified) two cookies will be set: one containing the JWT named `ACCESS-TOKEN`, and one containing a CSRF token named `XSRF-TOKEN`. A 201 HTTP status response will be issued. The JWT will contain a `sub` (subject) claim consisting of the user id, available on the request object as `req.user.sub`.
 
-Note that `login` is not designed to return a more complete user object. If you need a user object, one reasonable approach would be to include the user id in the JWT and expose a `currentuser` route which responds with a 'rehydrated' user based on the value of `req.user.sub`.
+Note that `login` is not designed to return a more complete user object. If you need a user object, one reasonable approach would be to expose a `currentuser` route which responds with a 'rehydrated' user based on the value of `req.user.sub`.
 
 ## Logout
 
@@ -67,6 +70,8 @@ Note that `login` is not designed to return a more complete user object. If you 
 app.get('/logout', doWhatever, auth.logout)
 ```
 
+You'll need to insert an `express-jwt` call prior to that if you require a user id.
+
 ## Validation
 
 `login` will check for the _presence_ of `username` and `password` on `req.body`, but it won't do much else. If you have specific validation requirements on those fields, you should add some earlier middleware to take care of it:
@@ -75,15 +80,25 @@ app.get('/logout', doWhatever, auth.logout)
 app.post('/login', validateCredentials, auth.login({ ... }))
 ```
 
+It is assumed that whatever storage layer you use for `getUser` protects you sufficiently against SQL injection: this is not checked for in `login`.
+
 ## Post-login hook
 
-It's not uncommon to need to update a few values, do something funky with sockets or write to logs following a successful login. Provide the name of a promise-returning function as the `postLogin` config property to accomplish this:
+It's not uncommon to need to update a few values, do something funky with sockets or write to logs following a successful login. Provide the name of a function as the `postLogin` config property to accomplish this. It can (but does not have to) return a promise:
 
 ```js
 app.post('/login', auth.login({ postLogin: updateCounters }))
 ```
 
-Whatever user object is returned by `getUser` will be passed to `postLogin` (not including the hash).
+It will be called with both request and response objects (but not `next`). Whatever user object is returned by `getUser` will therefore be available as `res.locals.expressAPIAuth.user`.
+
+## Post-identify hook
+
+Similar to `postLogin`, but called after `identify` and passed both request and response. The contents of the access token JWT will be available as `req.user`. The function can return a promise.
+
+```js
+app.get('/users', auth.identify({ secret, postIdentify: rehydrateUser }))
+```
 
 ## Error handling
 

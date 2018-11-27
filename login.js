@@ -5,7 +5,7 @@ const AuthenticationError = require('./authentication-error.js')
 const tokens = require('./tokens')
 const { verify } = require('./hash')
 
-const AUTH_COOKIE_FLAGS = {
+const ACCESS_TOKEN_FLAGS = {
   httpOnly: true,
   sameSite: 'strict',
   secure: true
@@ -49,20 +49,22 @@ const authenticate = async (req, res, next) => {
 }
 
 const postLoginHook = async (req, res, next) => {
-  const { loginHook, user } = res.locals.expressAPIAuth
+  const { loginHook } = res.locals.expressAPIAuth
+
+  // TODO: ideally allow an array of middleware here
   if (!isFunction(loginHook)) {
     return next()
   }
 
-  await loginHook(user)
+  await loginHook(req, res)
   next()
 }
 
 const issueTokens = (req, res) => {
   const { user, secret } = res.locals.expressAPIAuth
-  const authToken = tokens.createJWT(user, secret)
+  const accessToken = tokens.createJWT(user, secret)
   const csrfToken = req.csrfToken()
-  res.cookie('AUTH-TOKEN', authToken, AUTH_COOKIE_FLAGS)
+  res.cookie('ACCESS-TOKEN', accessToken, ACCESS_TOKEN_FLAGS)
   res.cookie('XSRF-TOKEN', csrfToken)
   res.sendStatus(201)
 }
