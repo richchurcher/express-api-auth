@@ -90,5 +90,11 @@ const login = options => [
   issueTokens
 ]
 
-module.exports = login
+module.exports = {
+  authenticate,
+  issueTokens,
+  login,
+  postLoginHook,
+  validate
+}
 
