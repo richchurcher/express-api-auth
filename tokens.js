@@ -1,5 +1,11 @@
 import jsonWebToken from 'jsonwebtoken'
 
+// TODO: allow more configuration of these, particularly alg
+const JWT_CLAIMS = {
+  algorithm: 'HS512',
+  expiresIn: '7d'
+}
+
 export const createJWT = (claims, secret) => {
   const { id, ...customClaims } = claims
 
@@ -11,7 +17,7 @@ export const createJWT = (claims, secret) => {
     customClaims,
     secret,
     {
-      expiresIn: '15m',
+      ...JWT_CLAIMS,
       subject: id
     }
   )
